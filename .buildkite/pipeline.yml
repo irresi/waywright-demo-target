@@ -1,0 +1,6 @@
+steps:
+  - label: ":test_tube: tests"
+    key: tests
+    command: bun install --frozen-lockfile 2>/dev/null || bun install; bun test
+    agents:
+      queue: ouroboros-local
