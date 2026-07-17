@@ -1,0 +1,170 @@
+{
+  "goal": "Help developers understand and trust autonomous code changes in this repository.",
+  "memory": [
+    {
+      "id": "D-000",
+      "createdAt": "2026-07-17T18:20:00.000Z",
+      "goal": "Differentiate Waywright from generic autonomous coding agents",
+      "selectedDirection": "Shared engineering memory with a cognitive-debt UI",
+      "rationale": "The agent and humans should use the same record of decisions, rejected alternatives, and real execution outcomes. The agent uses it to choose what to build next; humans use it to reconstruct why.",
+      "rejected": [
+        {
+          "direction": "Generic autonomous coder",
+          "reason": "The category is crowded and direction execution alone is not differentiated."
+        },
+        {
+          "direction": "Passive PR summary",
+          "reason": "A final summary hides rejected alternatives and does not carry lessons into the next decision."
+        }
+      ],
+      "evidence": [
+        "Buildkite MCP already created and observed a real build, proving outcomes can be stored alongside decisions.",
+        "The product ideation identified decision amnesia for agents and cognitive debt for humans as two sides of the same missing memory."
+      ],
+      "outcome": {
+        "status": "unknown",
+        "summary": "Selected for implementation during the hackathon."
+      },
+      "lessons": [
+        "A remembered decision must include why, what was rejected, and what actually happened.",
+        "Human understanding is one output edge; memory-grounded direction finding remains the core behavior."
+      ]
+    }
+  ],
+  "context": [
+    {
+      "source": "repository",
+      "summary": "demo-target — goal: Help developers understand and trust autonomous code changes in this repository.",
+      "evidence": "available scripts: none"
+    },
+    {
+      "source": "readme",
+      "summary": "Current project description",
+      "evidence": "# demo-target\n\nTo install dependencies:\n\n```bash\nbun install\n```\n\nTo run:\n\n```bash\nbun run index.ts\n```\n\nThis project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.\n"
+    },
+    {
+      "source": "git",
+      "summary": "Recent engineering history",
+      "evidence": "40f6b7b demo-target: scaffold with Buildkite pipeline"
+    },
+    {
+      "source": "worktree",
+      "summary": "Worktree is clean",
+      "evidence": "clean"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "annotated-diff-rationale",
+      "title": "Render decision-linked diff annotations in PR/commit view",
+      "hypothesis": "Surfacing each hunk's originating decision (why, what was rejected, what happened) inline in the diff reduces reviewer time-to-trust more than a plain PR summary",
+      "acceptanceCriteria": [
+        "Diff view renders a rationale marker per changed hunk pointing to its memory record",
+        "Marker shows selected direction + at least one rejected alternative + outcome status",
+        "Manual test: reviewer can answer 'why was X changed' without leaving the diff for 3 sample PRs"
+      ]
+    },
+    {
+      "id": "decision-record-cli",
+      "title": "CLI/script to query 'why' for any file or line from stored decision records",
+      "hypothesis": "A queryable command (e.g. `why <file>:<line>`) grounded in typed decision records is more useful for trust-building than passive documentation since it works on-demand during code review, not just at merge time",
+      "acceptanceCriteria": [
+        "Command resolves a file/line or commit SHA to its decision record(s) via git blame + memory lookup",
+        "Output includes rationale, rejected alternatives, and evidence fields verbatim (no LLM restatement, per D-000/4151)",
+        "Works for at least the last 5 real commits in this repo as a smoke test"
+      ]
+    },
+    {
+      "id": "merge-gate-explainer",
+      "title": "Human-readable explanation of merge-gate pass/fail tied to Pomerium policy decisions",
+      "hypothesis": "Since merge safety already relies on a fail-closed Pomerium boundary (per memory), exposing *why* a specific autonomous change passed or was blocked builds trust at the highest-stakes moment (merge time) more directly than general diff annotation",
+      "acceptanceCriteria": [
+        "Each merge attempt logs which policy rule allowed/blocked it plus the decision record that motivated that policy",
+        "Blocked merges show a human-readable reason distinct from raw Pomerium/HTTP status",
+        "Verified against at least one real allowed and one real blocked merge in this repo's history"
+      ]
+    }
+  ],
+  "priorArt": [
+    {
+      "repo": "ethereum/sourcify",
+      "directionId": "annotated-diff-rationale",
+      "decision": "Preflight repository trust before adopting its design patterns",
+      "why": "Zero.xyz capability run run_mynW_IFwfir4BwDBgxX4J: {\"repo\":\"argotorg/sourcify\",\"url\":\"https://github.com/argotorg/sourcify\",\"description\":\"Source code verification service for Ethereum smart contracts\",\"homepage\":\"https://sourcify.dev\",\"stars\":941,\"forks\":537,\"open_issues\":105,\"watchers\":941,\"primary_language\":\"TypeScript\",\"languages\":{\"TypeScript\":1692194,\"Solidity\":1098964,\"JavaScript\":140831,\"PLpgSQL\":65159,\"Shell\":32055,\"Vyper\":6362,\"Dockerfile\":3932,\"Yul\":1622},\"license\":\"MIT License\",\"license_spdx\":\"MIT\",\"topics\":[\"ethereum\",\"smart-contracts\",\"solidity\",\"source-code-verification\",\"verification\",\"vyper\"],\"created_at\":\"2019-04-24T08:23:22Z"
+    },
+    {
+      "repo": "ethereum/sourcify",
+      "decision": "Every match result carries a typed status enum (perfect/partial/null) plus a structured `message` and a `transformations`/`transformationValues` list explaining exactly which bytecode differences (constructor args, library links, immutables, metadata hash) were normalized away to reach the match.",
+      "why": "For decision-linked diff annotations, each hunk needs a machine-readable 'why this was accepted/rejected' payload, not prose — Sourcify's transformation list is a ready template for 'what was normalized/rejected and why' per code region.",
+      "directionId": "annotated-diff-rationale"
+    },
+    {
+      "repo": "ethereum/sourcify",
+      "decision": "Verification failures are modeled as a closed set of typed error codes (VerificationErrorCode: contract_not_deployed, bytecode_length_mismatch, no_match, etc.) thrown via a single VerificationError class, rather than free-text exceptions.",
+      "why": "A closed enum of rejection reasons is exactly what inline diff annotations need to render consistent, filterable badges ('rejected: bytecode_length_mismatch') instead of parsing arbitrary error strings.",
+      "directionId": "annotated-diff-rationale"
+    },
+    {
+      "repo": "ethereum/sourcify",
+      "decision": "The core library (packages/lib-sourcify) is fully decoupled from the API/server layer — verification produces a structured result object first, and only the server layer decides how to surface it (DB rows, API fields, docs) via an explicit FIELDS_TO_STORED_PROPERTIES mapping that must stay in sync with the OpenAPI spec.",
+      "why": "Keeping the 'decision record' (structured result) separate from its presentation lets the same verification/decision data feed multiple views (API response, PR annotation, DB) without re-deriving 'why' at render time — mirrors the separation needed between a decision-recording step and a diff-rendering step.",
+      "directionId": "annotated-diff-rationale"
+    },
+    {
+      "repo": "open-policy-agent/opa",
+      "directionId": "merge-gate-explainer",
+      "decision": "Preflight repository trust before adopting its design patterns",
+      "why": "Zero.xyz capability run run_u4VtwIUf_pfYvUR07Zhav: {\"repo\":\"open-policy-agent/opa\",\"url\":\"https://github.com/open-policy-agent/opa\",\"description\":\"Open Policy Agent (OPA) is an open source, general-purpose policy engine.\",\"homepage\":\"https://www.openpolicyagent.org\",\"stars\":11991,\"forks\":1617,\"open_issues\":348,\"watchers\":11991,\"primary_language\":\"Go\",\"languages\":{\"Go\":9872592,\"C\":944882,\"C++\":710174,\"Open Policy Agent\":117885,\"Makefile\":22951,\"Shell\":22171,\"JavaScript\":15600,\"Python\":5616,\"Dockerfile\":2622,\"TypeScript\":243},\"license\":\"Apache License 2.0\",\"license_spdx\":\"Apache-2.0\",\"topics\":[\"authorization\",\"cloud-native\",\"compliance\",\"declara"
+    },
+    {
+      "repo": "open-policy-agent/opa",
+      "decision": "Structured Event trace with typed Op enum (Enter/Eval/Fail/Exit/Note/...) plus a separate PrettyTrace renderer that formats the same events for humans",
+      "why": "OPA separates the machine-readable decision trace (Event structs carrying Node, Location, QueryID, ParentID) from its human rendering. For merge-gate pass/fail explanations, emit a typed decision-trace (which policy rule fired, which condition failed) as structured data first, then render it — so the same trace can back both a CLI message and a machine-checkable audit log.",
+      "directionId": "merge-gate-explainer"
+    },
+    {
+      "repo": "open-policy-agent/opa",
+      "decision": "Signed decision payload via a pluggable Signer interface producing a JWT over the exact file/decision set, with keyID and plugin name embedded",
+      "why": "Pomerium's fail-closed gate is only trustworthy if the pass/fail explanation can't be forged or replayed against a different diff. Steal the pattern of binding an explanation to a signed, keyed token over the specific inputs it covers (not just returning a boolean), so the explanation itself is verifiable evidence, not just log text.",
+      "directionId": "merge-gate-explainer"
+    },
+    {
+      "repo": "open-policy-agent/opa",
+      "decision": "FailOp/NoteOp as first-class trace events distinct from generic Eval — failure and explicit annotation get their own operation types rather than being inferred post-hoc from a generic log line",
+      "why": "Root-causing *why* a merge was blocked requires the failure point to be explicit at emission time, not reconstructed by diffing eval logs. Emitting a dedicated 'blocked-by' event (analogous to FailOp) at the exact Pomerium policy clause that denied the change makes the merge-gate explanation deterministic and directly traceable to one rule.",
+      "directionId": "merge-gate-explainer"
+    }
+  ],
+  "decision": {
+    "selectedId": "annotated-diff-rationale",
+    "rationale": "D-000 established that shared engineering memory (decisions + rejections + outcomes) is the differentiator, and its explicit consumer edge is 'humans use it to reconstruct why.' annotated-diff-rationale is the direct implementation of that human-facing edge: it surfaces the decision record at the exact point (diff/PR view) where a developer is trying to trust an autonomous change. Sourcify's prior art gives a concrete, already-proven template — typed status enum + structured transformation list + closed-set error codes + decoupled result-object-from-presentation — for exactly the payload this direction needs per hunk, and their MIT-licensed, actively maintained repo (941 stars, TS-heavy) is a legitimate pattern source. This is a natural evolution of D-000's rationale, not a reversal.",
+    "rejected": [
+      {
+        "id": "decision-record-cli",
+        "reason": "An on-demand CLI is a weaker default UX for building trust than diff annotations: it requires the developer to already suspect something and issue a manual query, whereas the goal is fluent, unavoidable exposure of rationale during code review. No prior-art evidence was supplied for this candidate, unlike the other two, indicating shallower validation."
+      },
+      {
+        "id": "merge-gate-explainer",
+        "reason": "Targets a narrower, already-covered edge (per memory 4148, the Pomerium fail-closed boundary is established) — it explains policy pass/fail, not general code trust. It's a good future direction but is downstream of and dependent on decision records already being rendered legibly, which is exactly what annotated-diff-rationale builds first. Its prior art (OPA signed traces) is also heavier infrastructure (pluggable Signer/JWT) than the hackathon scope likely affords."
+      }
+    ],
+    "evidence": [
+      "memory D-000: 'humans use it to reconstruct why' names diff/PR-time explanation as the human consumer edge of shared engineering memory",
+      "priorArt ethereum/sourcify: transformations/transformationValues list is a ready template for per-hunk 'what was normalized/rejected and why' payloads",
+      "priorArt ethereum/sourcify: closed VerificationErrorCode enum enables consistent, filterable 'rejected: X' badges instead of free-text parsing",
+      "priorArt ethereum/sourcify: lib-sourcify/server decoupling shows structured decision objects can feed multiple views (API, PR annotation, DB) without re-deriving rationale at render time",
+      "context repository: demo-target has no existing scripts/pipeline, so a diff-rendering feature is greenfield and low-conflict to add now"
+    ]
+  },
+  "selected": {
+    "id": "annotated-diff-rationale",
+    "title": "Render decision-linked diff annotations in PR/commit view",
+    "hypothesis": "Surfacing each hunk's originating decision (why, what was rejected, what happened) inline in the diff reduces reviewer time-to-trust more than a plain PR summary",
+    "acceptanceCriteria": [
+      "Diff view renders a rationale marker per changed hunk pointing to its memory record",
+      "Marker shows selected direction + at least one rejected alternative + outcome status",
+      "Manual test: reviewer can answer 'why was X changed' without leaving the diff for 3 sample PRs"
+    ]
+  },
+  "plan": "```markdown\n# Plan: Decision-Linked Diff Annotations (annotated-diff-rationale)\n\n## Scope\n\nAttach the run's decision record (selected direction, rejection reasons, evidence, outcome) to every changed hunk in the actuator's diff, and render it inline in `report.html` next to the diff — not just in the existing \"MEMORY WRITTEN\" drawer, which today summarizes the whole run but never touches the actual code.\n\nOuroboros currently produces one `DirectionDecision` per run (`src/types.ts:39`), not one per hunk — the actuator (`src/actuator.ts`) implements a single plan on a single branch. This plan does **not** invent per-hunk sub-decisions; every hunk in a given run gets the same decision payload. If a future run starts splitting a plan into independently-decided steps, per-hunk decisions become a real need — not now.\n\n## Files\n\n- `src/diff.ts` **(new)** — parse `git diff` output into hunks (`{ file, startLine, header, lines }`). Pure function, no git calls itself.\n- `src/actuator.ts` — after `deps.implement(plan)` returns a branch, capture `git diff <base>...<branch>` via a new `ActuatorDeps.diff(branch): Promise<string>` dependency; thread the raw diff text into `ActuatorResult` as `diff: string`.\n- `src/types.ts` — add `diff?: string` to `ActuatorResult`.\n- `src/render-report.ts` — add `renderDiffAnnotations(actuation, decision, memory)`: for each parsed hunk, render a marker showing selected direction title, first rejected alternative + reason, and outcome status, linking to the matching memory record (reuse existing `memoryMatches`/highlight wiring already built for evidence rows).\n- `src/report.ts` — pass `actuation?.diff` through to the render call (already assembles `WaywrightReportModel` inputs from `.waywright/*.json`; no new artifact file needed since diff now lives in `actuation.json`).\n- `tests/diff.test.ts` **(new)** — RED/GREEN for the parser.\n- `tests/render-report.test.ts` — extend existing suite (or add if absent) for the new annotation block.\n- `tests/actuator.test.ts` — extend for the new `diff` dependency call and result field.\n\n## Non-goals\n\n- No per-hunk distinct decisions/sub-rationale — out of scope until the actuator itself plans in multiple independently-decided steps.\n- No new closed-set error/status enum modeled on Sourcify's `VerificationErrorCode` — Ouroboros already has a closed `outcome.status` enum (`passed | failed | denied | unknown` in `types.ts:17`); reuse it, don't add a parallel one.\n- No GitHub PR inline-comment posting (i.e., not writing annotations onto the actual GitHub diff via API) — this plan renders inside the existing self-hosted `report.html`, which is the artifact the demo already drives users to. Posting real PR review comments is a separate, higher-privilege integration and not needed to hit the acceptance criteria.\n- No new storage layer — decision data already lives in `NavigationResult`/`EngineeringMemoryRecord` (`src/types.ts`) and is already piped into `report.ts`; this plan only adds a diff string and a rendering function, reusing `EngineeringMemory`/gbrain as-is.\n- No diff-viewer library (no `diff2html`, no Monaco) — the existing hunk header + line list renders fine as plain HTML given the report's current dark-mode design system; adding a dependency for this is against the ladder (rung 5 fails, rung 7 — minimum code — wins).\n\n## RED tests (write first, must fail)\n\n1. `tests/diff.test.ts`\n   - `parseDiff` on a two-file unified diff returns hunks with correct `file`, `startLine`, and `lines` for each file — fails because `src/diff.ts` doesn't exist.\n   - `parseDiff(\"\")` returns `[]` (empty diff → no hunks, not a crash).\n2. `tests/actuator.test.ts`\n   - `actuate()` calls `deps.diff(branch)` exactly once after a successful build and stores the result on `ActuatorResult.diff` — fails because `ActuatorDeps` has no `diff` method and `actuate` never calls it.\n3. `tests/render-report.test.ts` (new or extended)\n   - Given a navigation with one candidate decision and an actuation with a 1-hunk diff, `renderWaywrightReport` output contains a rationale marker whose text includes the selected direction's title, the first rejected reason, and the outcome status string — fails because no such markup exists yet.\n   - Given `actuation.diff` is `undefined` (build not yet run), the report still renders without throwing and shows an empty-state message for diff annotations (mirrors existing `empty()` pattern) — fails because the new render function doesn't exist.\n\n## GREEN implementation\n\n- `src/diff.ts`: minimal unified-diff parser — split on `diff --git`/`@@` markers, no external diff library (rung 3/5 fail: no diff-parsing dep is already installed and stdlib doesn't parse unified diff format, so this is the one place custom code is justified — but keep it to string splitting, not a full patch AST).\n- `src/actuator.ts`: add `diff(branch: string): Promise<string>` to `ActuatorDeps`, call once right after the green build is confirmed (not per iteration — only the final merged/denied state needs annotating), store on result.\n- `src/render-report.ts`: `renderDiffAnnotations` reuses `escapeHtml`, `memoryMatches`, and the existing `.evidence-copy`/`data-memory-ids` click-to-highlight wiring so the new markers participate in the existing memory-highlight interaction instead of building a parallel one.\n- Wire the new section into the `written-grid`/execution area of the existing template in `render-report.ts`, keeping the current CSS variables/classes rather than introducing new design tokens.\n\n## Acceptance criteria\n\n- [ ] `report.html` renders one rationale marker per changed hunk (RED test 3, part 1).\n- [ ] Each marker shows: selected direction title, ≥1 rejected alternative + its reason, and outcome status (RED test 3, part 1).\n- [ ] Manual check: for 3 sample runs (`.waywright/navigation.json` + `actuation.json` fixtures, reuse or extend fixtures already in `tests/report.test.ts`), a reviewer can state why a specific hunk changed by reading the annotation alone, without opening `.waywright/navigation.json` directly.\n- [ ] No regression: report still renders when `actuation.diff` is absent (pre-build state) or `actuation` itself is `undefined` (nav-only state), matching current `renderExecution`'s pending-state handling.\n- [ ] `bun test` green across `diff.test.ts`, `actuator.test.ts`, `render-report`/`report.test.ts`.\n\n## Adopted prior-art decisions (from DECISION.evidence)\n\n- Sourcify's per-result `transformations`/structured `message` list → adopted as the *shape* of the per-hunk payload (direction title + rejected reason + status), not as new code — Ouroboros's `EngineeringMemoryRecord` (`types.ts:8`) already carries this shape, so no new type is introduced, only a rendering path.\n- Sourcify's decoupling of the structured result object from its presentation layer (`lib-sourcify` vs. server `FIELDS_TO_STORED_PROPERTIES`) → adopted by keeping `diff.ts` (parsing) and `render-report.ts` (presentation) as separate modules, so the same decision data can later feed a different view (e.g. a future PR-comment poster) without re-deriving rationale.\n- Sourcify's closed `VerificationErrorCode` enum → explicitly **not** re-implemented; Ouroboros's existing `outcome.status` enum already satisfies the \"consistent, filterable badge\" need this pattern was cited for, per the non-goals above.\n```"
+}
